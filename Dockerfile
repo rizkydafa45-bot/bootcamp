@@ -8,4 +8,4 @@ WORKDIR /app
 COPY . .
 
 # Perintah untuk menjalankan aplikasi
-CMD ["python", "app.py"]
+CMD ["python", "app_tes.py"]
