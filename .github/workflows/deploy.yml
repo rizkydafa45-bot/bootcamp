@@ -1,0 +1,46 @@
+name: Build, Push, dan Deploy
+
+# Jalankan otomatis setiap ada kode baru yang masuk ke branch 'main'
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # TAHAP 1: Membuat Docker Image dan mengirimnya ke Docker Hub
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ambil kode dari GitHub
+        uses: actions/checkout@v4
+
+      - name: Login ke Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build dan Push ke Docker Hub
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # Format nama image: username_dockerhub/nama_aplikasi:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/aplikasi-pertamaku:latest
+
+  # TAHAP 2: Menjalankan aplikasi di server Ubuntu VirtualBox Anda
+  deploy-ke-ubuntu:
+    needs: build-and-push # Tunggu TAHAP 1 selesai dulu
+    runs-on: self-hosted  # GitHub akan mencari runner di server Ubuntu Anda
+    
+    steps:
+      - name: Tarik Image terbaru dan Jalankan
+        run: |
+          # 1. Download image terbaru dari Docker Hub
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/aplikasi-pertamaku:latest
+          
+          # 2. Hapus aplikasi versi lama yang sedang berjalan (jika ada)
+          docker rm -f aplikasi-berjalan || true
+          
+          # 3. Jalankan aplikasi versi terbaru
+          docker run -d --name aplikasi-berjalan ${{ secrets.DOCKERHUB_USERNAME }}/aplikasi-pertamaku:latest
